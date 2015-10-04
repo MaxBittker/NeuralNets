@@ -19,16 +19,26 @@ equations of linear separators:
 
 input layer:
 	x*0 + y*-1 + 4 = θ
+
 	x*2 + y*1 + 8 = θ
+
 	x*-2 + y*1 + 8 = θ
+
 	x*3	 + y*1 - 13 = θ
+
 	x*-3 + y*+1 + 11 = θ
+
 hidden layer 1:
 	x*1 + y*1 - 1.5 = θ
+
 	x*1 + y*1 - 1.5 = θ
+
 	x*-1 + y*-1 + 1.9 = θ
+
 hidden layer 2:
 	x*1 + y*1 - 1.5 = θ
+
 	x*1 + y*1 - 1.5 = θ
+
 output layer :
 	x*1 + y*1 - 1.5 = θ
