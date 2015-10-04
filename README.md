@@ -17,7 +17,7 @@ feel free to email me (netID: 11mb119) with questions if you have any questions 
 
 equations of linear separators:
 
-input layer:
+	input layer:
 	x*0 + y*-1 + 4 = θ
 
 	x*2 + y*1 + 8 = θ
@@ -28,17 +28,17 @@ input layer:
 
 	x*-3 + y*+1 + 11 = θ
 
-hidden layer 1:
+	hidden layer 1:
 	x*1 + y*1 - 1.5 = θ
 
 	x*1 + y*1 - 1.5 = θ
 
 	x*-1 + y*-1 + 1.9 = θ
 
-hidden layer 2:
+	hidden layer 2:
 	x*1 + y*1 - 1.5 = θ
 
 	x*1 + y*1 - 1.5 = θ
 
-output layer :
+	output layer :
 	x*1 + y*1 - 1.5 = θ
