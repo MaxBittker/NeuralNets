@@ -2,7 +2,8 @@
 
 This assignment was completed in javascript.
 nets.js is the annotated source code. 
-To run this code, open index.html in a modern web browser.
+To run this code, open index.html in a modern web browser, or open
+[maxbittker.github.io/NeuralNets](http://maxbittker.github.io/NeuralNets)
 The black squares on the grid correspond to "1" output values, white squares are "-1"
 
 Input values for x and y and press enter for classification.
