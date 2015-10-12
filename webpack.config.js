@@ -1,12 +1,19 @@
+var webpack = require("webpack");
+var path = require("path");
+
 module.exports = {
-    entry: "./nets.js",
+    entry: {
+        A1: "./js/A1.js",
+        A2: "./js/A2.js",
+    },
     output: {
-        path: __dirname,
-        filename: "bundle.js"
+        path: path.join(__dirname, "dist"),
+        filename: "[name].bundle.js"
     },
     module: {
         loaders: [{
-            test: "nets.js",
+            test: /\.js$/,
+            exclude: /(node_modules|bower_components)/,
             loader: 'babel-loader'
         }]
     }
