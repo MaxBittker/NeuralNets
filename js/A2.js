@@ -1,19 +1,13 @@
 var _ = require('underscore') //underscore is a functional toolkit.e.g. _.exampleUnderscoreFunction
-var trainingData = require('./trainingData.js')
+var trainingData = require('./trainingData.js') //trainingdata.js holds an array of training data
 
 
 /*
-    This program calls simulates a neural network by building and simulating
-    perceptrons layer by layer. It uses 5 input nodes, two hidden layers 
-    and one output node to arive at a conclusion: -1 for outside the polygon,
-    1 for inside the polygon. Each node has individually chosen weights and 
-    threshhold values.
-
-    It runs this simulation once for each square of the grid and prints a 
-    unicode character corresponding to the binary output.
-
-    It also runs the simulation in response to the html button and input fields.
+    This program calls simulates a neural network by with two linear classifier nodes.
+    The networks is trained untill it classifies all training points correctly,
+    and writes then writes output to html.   
 */
+
 //initweight is called for initial weight values when instantiationg perceptrons
 //It originaly returned random values, but this made it harder to compare learning methods  
 function initweight() {
