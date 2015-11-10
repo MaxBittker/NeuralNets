@@ -44,8 +44,6 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	"use strict";
-
 	var _ = __webpack_require__(1); //underscore is a functional toolkit.e.g. _.exampleUnderscoreFunction
 	/*
 	    This program calls simulates a neural network by building and simulating
@@ -70,13 +68,11 @@
 
 	perceptron.prototype = {
 
-	    update: function update() {
-	        var _this = this;
-
-	        var sum = _.reduce(_.map(this.inputs, function (input, key) {
+	    update: function () {
+	        var sum = _.reduce(_.map(this.inputs, (input, key) => {
 	            //update multiplies each input by its weight
-	            return input * _this.weights[key];
-	        }, this), function (sum, weightedinput) {
+	            return input * this.weights[key];
+	        }, this), (sum, weightedinput) => {
 	            //sums these weighted input values
 	            return sum + weightedinput;
 	        });
@@ -128,8 +124,8 @@
 	}
 
 	network.prototype = { //a function to call update on every node in a layer
-	    runLayer: function runLayer(layer) {
-	        _.each(layer, function (node) {
+	    runLayer: function (layer) {
+	        _.each(layer, node => {
 	            node.update();
 	        });
 	    }

@@ -44,8 +44,31 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
+	// CISC/CMPE452/COGS400
+	// Assignment 3
+	// Backpropagation
+
+	// Criteria to stop the training (error, # of iterations),
+
+	// Initial weights and learning rate,
+
+	// Number of layers and nodes,
+
+	// Momentum,
+
+	// Regularization,
+
+	// Splitting the given data into training and test data.
+
+	// Print a performance table containing sum of squared error (for all data),
+	// weights, classification results (how many and correct/incorrect for each
+	// class) and explain your results.
+	// at the start
+	// at the middle of the training period and end of an epoch (at least one)
+	// At the end after training and testing is done
+
 	var _ = __webpack_require__(1); //underscore is a functional toolkit.e.g. _.exampleUnderscoreFunction
-	var trainingData = __webpack_require__(2); //trainingdata.js holds an array of training data
+	var trainingData = __webpack_require__(3); //trainingdata.js holds an array of training data
 
 	/*
 	    This program calls simulates a neural network by with two linear classifier nodes.
@@ -54,10 +77,9 @@
 	*/
 
 	//initweight is called for initial weight values when instantiationg perceptrons
-	//It originaly returned random values, but this made it harder to compare learning methods 
+	//It originaly returned 	om values, but this made it harder to compare learning methods 
 	function initweight() {
-	    return -1;
-	    // return ((Math.random() * 2) - 1);
+	    return Math.random() * 2 - 1;
 	}
 
 	//each perceptron has a learning rate and a weight array, the last value of which is the threshold value
@@ -68,160 +90,181 @@
 
 	perceptron.prototype = { //methods attached to perceptrons:
 	    //calculate returns -1 or 1 for a given input co-ordinate
+	    sigmoid: function (a) {
+	        var m = 1; // slope of sigmoid
+	        var result = 1 / (1 + Math.exp(a * m * -1));
+	        return result;
+	    },
+	    sigPrime: function (a) {
+	        return this.sigmoid(a) * (1 - this.sigmoid(a));
+	    },
 	    calc: function (x, y) {
-	        var sum = _.reduce(_.map([x, y, 1], (input, key) => {
-	            //update multiplies each input by its weight
-	            return input * this.weights[key];
-	        }, this), (sum, weightedinput) => {
-	            //sums these weighted input values
-	            return sum + weightedinput;
-	        });
-
-	        //checks the value against it's threshhold,
-	        //and sets the output to 1 or -1
-	        return sum > 0 ? 1 : -1;
+	        var sum = _.reduce(_.map([x, y, 1], (input, key) => input * this.weights[key]), (sum, weightedinput) => sum + weightedinput);
+	        return this.sigmoid(sum);
 	    },
-	    //given a learning method, a point, and its correct classification,
-	    //learn adjusts the weight values of the perceptron
-	    learn: function (method, x, y, d) {
-	        if (method == "Simple Feedback") {
-	            this.learnSimpleFeedback(x, y, d);
-	        } else {
-	            this.learnErrorCorrection(x, y, d);
+	    learn: function (x, y, d, w) {
+	        if (typeof w === "undefined") {
+	            w = 1;
 	        }
-	    },
-	    //simple feedback learning algorithm implementation
-	    //_.map() takes an array (ARG1) and returns an array with the results of calling a function (ARG2)
-	    //for each respective element  eg _.map([1,2,3],(x)=>{return(x*2)}) yields [2,4,6]
-	    learnSimpleFeedback: function (x, y, d) {
+
 	        var xi = [x, y, 1];
-	        if (d === this.calc(x, y)) {
-	            //do nothing
-	        } else if (d < this.calc(x, y)) {
-	                this.weights = _.map(this.weights, (weight, index) => {
-	                    return weight - xi[index] * this.lRate;
-	                });
-	            } else {
-	                this.weights = _.map(this.weights, (weight, index) => {
-	                    return weight + xi[index] * this.lRate;
-	                });
-	            }
-	    },
-	    //simple feedback learning algorithm implementation
-	    learnErrorCorrection: function (x, y, d) {
-	        var xi = [x, y, 1];
+
 	        this.weights = _.map(this.weights, (weight, index) => {
-	            return weight + (d - this.calc(x, y)) * (xi[index] * this.lRate);
+	            var gamma = this.calc(x, y); //
+	            var d1 = (d - gamma) * gamma * (1 - gamma);
+
+	            return weight + d1 * w * xi[index] * this.lRate; //xi * c
 	        });
 	    }
 	};
 
-	//test takes a datapoint, and returns true if the current network classifies it correctly
-	function test(data) {
-	    var dvector = parseD(data[2]);
-
-	    var output = [0, 0];
-
-	    for (var i = 0; i < 2; i++) {
-	        output[i] = network[i].calc(data[0], data[1]);
-	    };
-
-	    if (output[0] + output[1] === -2) {
-	        //this deals with the edge case where both nodes return -1
-	        if (data[0] >= -.1) output[0] = 1;else output[1] = 1;
-	    }
-
-	    if (output[0] === dvector[0] && output[1] === dvector[1]) {
-	        return true;
-	    }
-	    return false;
+	function network() {
+	    this.hiddenLayer = [new perceptron(), new perceptron()];
+	    this.outputLayer = [new perceptron(), new perceptron(), new perceptron()];
 	}
 
-	//parses the result element of the supplied training data into the expected results from the individual perceptrons
-	function parseD(d) {
-	    switch (d) {
-	        case "-1":
-	            return [-1, 1];
-	        case "0":
-	            return [1, 1];
-	        case "1":
-	            return [1, -1];
-	        default:
-	            console.log("hit default");
-	    }
-	}
+	network.prototype = { //a function to call update on every node in a layer
+	    calcHidden: function (input) {
+	        return [this.hiddenLayer[0].calc(input[0], input[1]), this.hiddenLayer[1].calc(input[2], input[3])];
+	    },
+	    calc: function (input) {
+	        var hiddenLayerOutput = this.calcHidden(input);
 
-	//train sets learning rate and then calls learn() for each point in the training dataset
-	function train(learningRate, method) {
+	        var output = _.map(this.outputLayer, node => node.calc(hiddenLayerOutput[0], hiddenLayerOutput[1]));
+	        // console.log(output)
+	        return output;
+	    },
+	    //train sets learning rate and then calls learn() for each point in the training dataset
+	    train: function (data) {
+	        var desired = parseClass(data[4]);
+	        // console.log(desired)
+	        var hiddenLayerOutput = this.calc(data);
 
-	    network[0].lRate = learningRate;
-	    network[1].lRate = learningRate;
+	        var output = _.map(this.outputLayer, node => {
+	            return node.calc(hiddenLayerOutput[0], hiddenLayerOutput[1]);
+	        });
+	        var error = _.map(desired, (value, i) => {
+	            return value - output[i];
+	        });
 
-	    _.each(trainingData, function (data) {
-	        var dvector = parseD(data[2]);
-	        //this logic avoids calling perceptron.train on datapoints that don't help apply to it  
-	        switch (data[2]) {
-	            case "-1":
-	                network[0].learn(method, data[0], data[1], dvector[0]);
-	                break;
-	            case "0":
-	                network[0].learn(method, data[0], data[1], dvector[0]);
-	                network[1].learn(method, data[0], data[1], dvector[1]);
-	                break;
-	            case "1":
-	                network[1].learn(method, data[0], data[1], dvector[1]);
-	                break;
-	            default:
-	                console.log("hit default");
+	        //modify output weights
+	        _.each(this.outputLayer, (node, i) => {
+	            node.learn(hiddenLayerOutput[0], hiddenLayerOutput[1], desired[i]);
+	        });
+
+	        //modify hidden weights
+
+	        for (var o = 0; o < 3; o++) {
+	            var w0 = this.outputLayer[o].weights[0];
+	            var w1 = this.outputLayer[o].weights[1];
+
+	            this.hiddenLayer[0].learn(data[0], data[1], desired[o], w0);
+	            this.hiddenLayer[1].learn(data[2], data[3], desired[o], w1);
 	        }
-	    });
+	        // _.each(trainingData, function(data) {
+	        // network[0].learn(method, data[0], data[1], dvector[0])
+	        // })
+	    },
+	    //test takes a datapoint, and returns true if the current network classifies it correctly
+	    test: function (data) {
+	        var outvector = parseClass(data[4]);
+
+	        var output = this.calc(data.slice(0, 4));
+	        console.log(_.map(output, val => val.toFixed(1)), outvector);
+
+	        output = _.map(output, o => {
+	            if (_.max(output) == o) return 1;else return 0;
+	        });
+
+	        if (_.every(outvector, (value, i) => value == output[i])) return true;else return false;
+	    },
+	    totalCost: function (data) {
+	        var outvector = parseClass(data[4]);
+
+	        var output = this.calc(data.slice(0, 4));
+
+	        return _.reduce(_.map(outvector, (val, i) => Math.exp(val - output[i], 2)), (v, sum) => v + sum);
+
+	        // if (_.every(outvector, (value, i) => value == output[i]))
+	        // return true
+	        // else
+	        // return false
+	    }
+
+	};
+
+	function parseClass(classString) {
+	    var output = [0, 0, 0];
+
+	    switch (classString) {
+	        case 'Iris-setosa':
+	            output[0] = 1;
+	            break;
+	        case 'Iris-versicolor':
+	            output[1] = 1;
+	            break;
+	        case 'Iris-virginica':
+	            output[2] = 1;
+	            break;
+	        default:
+	            alert(classString);
+	    }
+	    return output;
 	}
+
 	//a global structure to keep track of current active perceptrons
-	var network = [new perceptron(), new perceptron()];
 
 	//experiment trains and tests networks iterativly with a given training method. once error is 0, it records some information out to the html
-	function experiment(method) {
-	    document.write('<h4>' + method + ':</h4>');
+	function experiment() {
+	    // document.write('<h4>' + method + ':</h4>');
 	    var ErrorProgress = "";
-	    network = [new perceptron(), new perceptron()];
+	    var net = new network();
+	    // var start = new Date();
+	    for (var i = 0; i < 15; i++) {
 
-	    var start = new Date();
-	    for (var i = 1; i < 100; i++) {
-	        train(1 / i, method);
-	        ErrorProgress += "iteration: " + i + " error:" + (trainingData.length - _.filter(trainingData, test).length) + "<br> ";
-	        if (_.filter(trainingData, test).length == trainingData.length) break;
+	        _.each(trainingData, datapoint => net.train(datapoint));
+	        // console.log(i)
+	        // console.log(trainingData.length, i)
+	        var numCorrect = _.filter(trainingData, datapoint => net.test(datapoint)).length;
+
+	        var totalCost = _.reduce(_.map(trainingData, datapoint => net.totalCost(datapoint)), (v, sum) => v + sum);
+
+	        ErrorProgress += "iteration: " + i + " error: " + (trainingData.length - numCorrect) + "  errorVal: " + totalCost.toFixed(3) + "<br> ";
+	        if (numCorrect == trainingData.length) break;
 	    }
-	    var finish = new Date();
-	    var difference = new Date();
-	    difference.setTime(finish.getTime() - start.getTime());
+	    // var finish = new Date();
+	    // var difference = new Date();
+	    // difference.setTime(finish.getTime() - start.getTime());
 
-	    render(network);
+	    // render(network)
 	    document.write(ErrorProgress);
-	    document.write('<h4> Final Score: ' + (_.filter(trainingData, test).length + '/' + trainingData.length) + '</h4>');
-	    document.write('<h4> Final weights: ' + network[0].weights + '<br>' + network[1].weights + '</h4>');
-	    document.write('Took ' + difference.getMilliseconds() + "ms");
+	    // document.write('<h4> Final Score: ' + (_.filter(trainingData, test).length + '/' + trainingData.length) + '</h4>')
+	    // document.write('<h4> Final weights: ' + network[0].weights + '<br>' + network[1].weights + '</h4>')
+	    // document.write('Took ' + difference.getMilliseconds() + "ms")
 	}
 
-	experiment("Simple Feedback");
-	experiment("Error Correction");
+	experiment();
 
 	//render writes out a grid of values with different unicode values correspoding to different output values
-	function render(network) {
-	    document.write('<p class="display">');
+	// function render(network) {
+	// document.write('<p class="display">');
 
-	    for (var y = 20; y > -20; y -= 1) {
-	        //range of y values to display
-	        for (var x = -20; x < 20; x += 1) {
-	            //range of x values to display
-	            if (network[0].calc(x, y) === 1 && network[1].calc(x, y) === 1) var chr = "&#9632;"; //unicode for black square
-	            else if (network[0].calc(x, y) === 1) var chr = "1";else if (network[1].calc(x, y) === 1) var chr = "0";else var chr = "&#9633;"; //unicode for white square
-	            document.write(chr);
-	        }
-	        document.write("<br>");
-	    }
-	    document.write("</p>");
-	    document.write("<br>");
-	}
+	// for (var y = 20; y > -20; y -= 1) { //range of y values to display
+	// for (var x = -20; x < 20; x += 1) { //range of x values to display
+	// if ((network[0].calc(x, y) === 1) && (network[1].calc(x, y) === 1))
+	// var chr = "&#9632;" //unicode for black square
+	// else if (network[0].calc(x, y) === 1)
+	// var chr = "1"
+	// else if (network[1].calc(x, y) === 1)
+	// var chr = "0"
+	// else var chr = "&#9633;" //unicode for white square
+	// document.write(chr);
+	// }
+	// document.write("<br>");
+	// }
+	// document.write("</p>");
+	// document.write("<br>");
+	// }
 
 /***/ },
 /* 1 */
@@ -1778,10 +1821,11 @@
 
 
 /***/ },
-/* 2 */
+/* 2 */,
+/* 3 */
 /***/ function(module, exports) {
 
-	module.exports = [["20", "0", "1"], ["19.9969539", "0.349048128", "1"], ["19.98781654", "0.697989933", "1"], ["19.9725907", "1.046719124", "1"], ["19.95128101", "1.395129473", "1"], ["19.92389396", "1.743114853", "1"], ["19.89043791", "2.090569263", "1"], ["19.85092303", "2.437386865", "1"], ["19.80536138", "2.783462016", "1"], ["19.75376681", "3.128689297", "1"], ["19.69615506", "3.472963549", "1"], ["19.63254367", "3.816179903", "1"], ["19.56295202", "4.158233812", "1"], ["19.4874013", "4.499021082", "1"], ["19.40591453", "4.838437907", "1"], ["19.31851653", "5.176380896", "1"], ["19.22523392", "5.51274711", "1"], ["19.12609512", "5.847434088", "1"], ["19.02113033", "6.180339881", "1"], ["18.91037151", "6.511363082", "1"], ["18.79385242", "6.840402859", "1"], ["18.67160853", "7.167358983", "1"], ["18.54367709", "7.49213186", "1"], ["18.41009707", "7.814622561", "1"], ["18.27090916", "8.134732853", "1"], ["18.12615574", "8.452365226", "1"], ["17.97588093", "8.767422926", "1"], ["17.82013049", "9.079809985", "1"], ["17.65895186", "9.389431246", "1"], ["17.49239415", "9.696192395", "1"], ["17.32050808", "9.99999999", "1"], ["17.14334602", "10.30076149", "1"], ["16.96096193", "10.59838527", "1"], ["16.77341137", "10.89278069", "1"], ["16.58075146", "11.18385806", "1"], ["16.38304089", "11.47152872", "1"], ["16.1803399", "11.75570503", "1"], ["15.97271021", "12.03630045", "1"], ["15.76021508", "12.31322949", "1"], ["15.54291924", "12.58640781", "1"], ["15.32088887", "12.85575218", "1"], ["15.09419162", "13.12118057", "1"], ["14.86289652", "13.38261211", "1"], ["14.62707404", "13.63996719", "1"], ["14.38679602", "13.8931674", "1"], ["14.14213564", "14.14213561", "1"], ["13.89316742", "14.38679599", "1"], ["13.63996721", "14.62707402", "1"], ["13.38261214", "14.8628965", "1"], ["13.12118059", "15.09419159", "1"], ["12.85575221", "15.32088885", "1"], ["12.58640784", "15.54291922", "1"], ["12.31322952", "15.76021506", "1"], ["12.03630048", "15.97271019", "1"], ["11.75570506", "16.18033987", "1"], ["11.47152874", "16.38304087", "1"], ["11.18385809", "16.58075144", "1"], ["10.89278072", "16.77341135", "1"], ["10.5983853", "16.96096191", "1"], ["10.30076152", "17.143346", "0"], ["10.00000002", "17.32050806", "0"], ["9.696192426", "17.49239413", "0"], ["9.389431278", "17.65895185", "0"], ["9.079810017", "17.82013047", "0"], ["8.767422959", "17.97588091", "0"], ["8.452365258", "18.12615573", "0"], ["8.134732886", "18.27090914", "0"], ["7.814622594", "18.41009706", "0"], ["7.492131893", "18.54367708", "0"], ["7.167359017", "18.67160852", "0"], ["6.840402893", "18.79385241", "0"], ["6.511363116", "18.9103715", "0"], ["6.180339915", "19.02113032", "0"], ["5.847434122", "19.12609511", "0"], ["5.512747145", "19.22523391", "0"], ["5.176380931", "19.31851652", "0"], ["4.838437941", "19.40591452", "0"], ["4.499021117", "19.48740129", "0"], ["4.158233847", "19.56295201", "0"], ["3.816179938", "19.63254366", "0"], ["3.472963585", "19.69615505", "0"], ["3.128689333", "19.75376681", "0"], ["2.783462052", "19.80536137", "0"], ["2.437386901", "19.85092303", "0"], ["2.090569299", "19.8904379", "0"], ["1.743114889", "19.92389396", "0"], ["1.395129509", "19.951281", "0"], ["1.04671916", "19.97259069", "0"], ["0.697989969", "19.98781654", "0"], ["0.349048164", "19.9969539", "0"], ["3.59E-08", "20", "0"], ["-0.349048092", "19.9969539", "0"], ["-0.697989897", "19.98781654", "0"], ["-1.046719088", "19.9725907", "0"], ["-1.395129437", "19.95128101", "0"], ["-1.743114817", "19.92389397", "0"], ["-2.090569227", "19.89043791", "0"], ["-2.43738683", "19.85092304", "0"], ["-2.78346198", "19.80536138", "0"], ["-3.128689262", "19.75376682", "0"], ["-3.472963514", "19.69615507", "0"], ["-3.816179868", "19.63254368", "0"], ["-4.158233777", "19.56295202", "0"], ["-4.499021047", "19.4874013", "0"], ["-4.838437872", "19.40591454", "0"], ["-5.176380862", "19.31851654", "0"], ["-5.512747076", "19.22523393", "0"], ["-5.847434054", "19.12609513", "0"], ["-6.180339847", "19.02113034", "0"], ["-6.511363048", "18.91037153", "0"], ["-6.840402825", "18.79385243", "0"], ["-7.16735895", "18.67160855", "0"], ["-7.492131827", "18.54367711", "0"], ["-7.814622528", "18.41009709", "0"], ["-8.13473282", "18.27090917", "0"], ["-8.452365193", "18.12615576", "0"], ["-8.767422894", "17.97588095", "0"], ["-9.079809953", "17.8201305", "0"], ["-9.389431214", "17.65895188", "0"], ["-9.696192363", "17.49239417", "0"], ["-9.999999959", "17.3205081", "-1"], ["-10.30076146", "17.14334604", "-1"], ["-10.59838524", "16.96096195", "-1"], ["-10.89278066", "16.77341139", "-1"], ["-11.18385803", "16.58075148", "-1"], ["-11.47152869", "16.38304091", "-1"], ["-11.75570501", "16.18033992", "-1"], ["-12.03630042", "15.97271023", "-1"], ["-12.31322947", "15.7602151", "-1"], ["-12.58640778", "15.54291926", "-1"], ["-12.85575215", "15.3208889", "-1"], ["-13.12118054", "15.09419164", "-1"], ["-13.38261209", "14.86289654", "-1"], ["-13.63996716", "14.62707407", "-1"], ["-13.89316737", "14.38679604", "-1"], ["-14.14213559", "14.14213566", "-1"], ["-14.38679597", "13.89316745", "-1"], ["-14.627074", "13.63996724", "-1"], ["-14.86289647", "13.38261217", "-1"], ["-15.09419157", "13.12118062", "-1"], ["-15.32088883", "12.85575224", "-1"], ["-15.54291919", "12.58640786", "-1"], ["-15.76021504", "12.31322955", "-1"], ["-15.97271017", "12.03630051", "-1"], ["-16.18033985", "11.75570509", "-1"], ["-16.38304085", "11.47152877", "-1"], ["-16.58075142", "11.18385812", "-1"], ["-16.77341133", "10.89278075", "-1"], ["-16.96096189", "10.59838533", "-1"], ["-17.14334598", "10.30076155", "-1"], ["-17.32050805", "10.00000005", "-1"], ["-17.49239411", "9.696192458", "-1"], ["-17.65895183", "9.389431309", "-1"], ["-17.82013046", "9.079810049", "-1"], ["-17.9758809", "8.767422991", "-1"], ["-18.12615571", "8.452365291", "-1"], ["-18.27090913", "8.134732918", "-1"], ["-18.41009704", "7.814622627", "-1"], ["-18.54367707", "7.492131927", "-1"], ["-18.67160851", "7.16735905", "-1"], ["-18.79385239", "6.840402926", "-1"], ["-18.91037149", "6.51136315", "-1"], ["-19.02113031", "6.180339949", "-1"], ["-19.1260951", "5.847434157", "-1"], ["-19.2252339", "5.512747179", "-1"], ["-19.31851651", "5.176380966", "-1"], ["-19.40591451", "4.838437976", "-1"], ["-19.48740128", "4.499021152", "-1"], ["-19.562952", "4.158233882", "-1"], ["-19.63254366", "3.816179974", "-1"], ["-19.69615505", "3.47296362", "-1"], ["-19.7537668", "3.128689368", "-1"], ["-19.80536137", "2.783462087", "-1"], ["-19.85092302", "2.437386937", "-1"], ["-19.8904379", "2.090569334", "-1"], ["-19.92389396", "1.743114924", "-1"], ["-19.951281", "1.395129545", "-1"], ["-19.97259069", "1.046719195", "-1"], ["-19.98781654", "0.697990005", "-1"], ["-19.9969539", "0.3490482", "-1"], ["-20", "7.18E-08", "-1"], ["-19.9969539", "-0.349048057", "-1"], ["-19.98781654", "-0.697989862", "-1"], ["-19.9725907", "-1.046719052", "-1"], ["-19.95128101", "-1.395129402", "-1"], ["-19.92389397", "-1.743114781", "-1"], ["-19.89043792", "-2.090569192", "-1"], ["-19.85092304", "-2.437386794", "-1"], ["-19.80536139", "-2.783461945", "-1"], ["-19.75376682", "-3.128689226", "-1"], ["-19.69615507", "-3.472963479", "-1"], ["-19.63254368", "-3.816179833", "-1"], ["-19.56295203", "-4.158233741", "-1"], ["-19.48740131", "-4.499021012", "-1"], ["-19.40591454", "-4.838437837", "-1"], ["-19.31851655", "-5.176380827", "-1"], ["-19.22523394", "-5.512747041", "-1"], ["-19.12609514", "-5.847434019", "-1"], ["-19.02113035", "-6.180339812", "-1"], ["-18.91037154", "-6.511363014", "-1"], ["-18.79385244", "-6.840402792", "-1"], ["-18.67160856", "-7.167358916", "-1"], ["-18.54367712", "-7.492131794", "-1"], ["-18.4100971", "-7.814622495", "-1"], ["-18.27090919", "-8.134732787", "-1"], ["-18.12615578", "-8.452365161", "-1"], ["-17.97588096", "-8.767422862", "-1"], ["-17.82013052", "-9.079809921", "-1"], ["-17.6589519", "-9.389431182", "-1"], ["-17.49239418", "-9.696192332", "-1"], ["-17.32050812", "-9.999999927", "-1"], ["-17.14334606", "-10.30076143", "-1"], ["-16.96096197", "-10.59838521", "-1"], ["-16.77341141", "-10.89278063", "-1"], ["-16.5807515", "-11.183858", "-1"], ["-16.38304093", "-11.47152866", "-1"], ["-16.18033994", "-11.75570498", "-1"], ["-15.97271025", "-12.03630039", "-1"], ["-15.76021513", "-12.31322944", "-1"], ["-15.54291928", "-12.58640775", "-1"], ["-15.32088892", "-12.85575213", "-1"], ["-15.09419166", "-13.12118051", "-1"], ["-14.86289657", "-13.38261206", "-1"], ["-14.62707409", "-13.63996714", "-1"], ["-14.38679607", "-13.89316734", "-1"], ["-14.14213569", "-14.14213556", "-1"], ["-13.89316747", "-14.38679594", "-1"], ["-13.63996727", "-14.62707397", "-1"], ["-13.38261219", "-14.86289645", "-1"], ["-13.12118065", "-15.09419154", "-1"], ["-12.85575226", "-15.3208888", "-1"], ["-12.58640789", "-15.54291917", "-1"], ["-12.31322958", "-15.76021502", "-1"], ["-12.03630054", "-15.97271015", "-1"], ["-11.75570512", "-16.18033983", "-1"], ["-11.4715288", "-16.38304083", "-1"], ["-11.18385815", "-16.5807514", "-1"], ["-10.89278078", "-16.77341131", "-1"], ["-10.59838537", "-16.96096187", "-1"], ["-10.30076158", "-17.14334596", "-1"], ["-10.00000008", "-17.32050803", "-1"], ["-9.696192489", "-17.4923941", "-1"], ["-9.389431341", "-17.65895181", "-1"], ["-9.079810081", "-17.82013044", "-1"], ["-8.767423023", "-17.97588088", "-1"], ["-8.452365323", "-18.1261557", "-1"], ["-8.134732951", "-18.27090911", "-1"], ["-7.81462266", "-18.41009703", "-1"], ["-7.49213196", "-18.54367705", "-1"], ["-7.167359084", "-18.67160849", "-1"], ["-6.84040296", "-18.79385238", "-1"], ["-6.511363184", "-18.91037148", "-1"], ["-6.180339983", "-19.02113029", "-1"], ["-5.847434191", "-19.12609509", "-1"], ["-5.512747214", "-19.22523389", "-1"], ["-5.176381", "-19.3185165", "-1"], ["-4.838438011", "-19.4059145", "-1"], ["-4.499021187", "-19.48740127", "-1"], ["-4.158233917", "-19.56295199", "-1"], ["-3.816180009", "-19.63254365", "-1"], ["-3.472963655", "-19.69615504", "-1"], ["-3.128689404", "-19.7537668", "-1"], ["-2.783462123", "-19.80536136", "-1"], ["-2.437386972", "-19.85092302", "-1"], ["-2.09056937", "-19.8904379", "-1"], ["-1.74311496", "-19.92389395", "-1"], ["-1.395129581", "-19.951281", "-1"], ["-1.046719231", "-19.97259069", "-1"], ["-0.697990041", "-19.98781654", "-1"], ["-0.349048236", "-19.9969539", "-1"], ["-1.08E-07", "-20", "1"], ["0.349048021", "-19.99695391", "1"], ["0.697989826", "-19.98781654", "1"], ["1.046719016", "-19.9725907", "1"], ["1.395129366", "-19.95128101", "1"], ["1.743114746", "-19.92389397", "1"], ["2.090569156", "-19.89043792", "1"], ["2.437386758", "-19.85092305", "1"], ["2.783461909", "-19.80536139", "1"], ["3.128689191", "-19.75376683", "1"], ["3.472963443", "-19.69615508", "1"], ["3.816179798", "-19.63254369", "1"], ["4.158233706", "-19.56295204", "1"], ["4.499020977", "-19.48740132", "1"], ["4.838437802", "-19.40591455", "1"], ["5.176380792", "-19.31851656", "1"], ["5.512747007", "-19.22523395", "1"], ["5.847433985", "-19.12609515", "1"], ["6.180339778", "-19.02113036", "1"], ["6.51136298", "-18.91037155", "1"], ["6.840402758", "-18.79385246", "1"], ["7.167358883", "-18.67160857", "1"], ["7.49213176", "-18.54367713", "1"], ["7.814622462", "-18.41009711", "1"], ["8.134732754", "-18.2709092", "1"], ["8.452365128", "-18.12615579", "1"], ["8.76742283", "-17.97588098", "1"], ["9.079809889", "-17.82013054", "1"], ["9.389431151", "-17.65895191", "1"], ["9.696192301", "-17.4923942", "1"], ["9.999999896", "-17.32050814", "1"], ["10.3007614", "-17.14334608", "1"], ["10.59838518", "-16.96096199", "1"], ["10.8927806", "-16.77341142", "1"], ["11.18385797", "-16.58075152", "1"], ["11.47152863", "-16.38304096", "1"], ["11.75570495", "-16.18033996", "1"], ["12.03630037", "-15.97271027", "1"], ["12.31322941", "-15.76021515", "1"], ["12.58640773", "-15.54291931", "1"], ["12.8557521", "-15.32088894", "1"], ["13.12118049", "-15.09419169", "1"], ["13.38261203", "-14.86289659", "1"], ["13.63996711", "-14.62707412", "1"], ["13.89316732", "-14.38679609", "1"], ["14.14213553", "-14.14213571", "1"], ["14.38679592", "-13.8931675", "1"], ["14.62707395", "-13.63996729", "1"], ["14.86289642", "-13.38261222", "1"], ["15.09419152", "-13.12118068", "1"], ["15.32088878", "-12.85575229", "1"], ["15.54291915", "-12.58640792", "1"], ["15.76021499", "-12.31322961", "1"], ["15.97271012", "-12.03630057", "1"], ["16.18033981", "-11.75570515", "1"], ["16.38304081", "-11.47152883", "1"], ["16.58075138", "-11.18385818", "1"], ["16.77341129", "-10.89278081", "1"], ["16.96096185", "-10.5983854", "1"], ["17.14334595", "-10.30076161", "1"], ["17.32050801", "-10.00000011", "1"], ["17.49239408", "-9.69619252", "1"], ["17.6589518", "-9.389431373", "1"], ["17.82013042", "-9.079810113", "1"], ["17.97588087", "-8.767423056", "1"], ["18.12615568", "-8.452365356", "1"], ["18.2709091", "-8.134732984", "1"], ["18.41009702", "-7.814622694", "1"], ["18.54367704", "-7.492131993", "1"], ["18.67160848", "-7.167359117", "1"], ["18.79385237", "-6.840402994", "1"], ["18.91037147", "-6.511363218", "1"], ["19.02113028", "-6.180340017", "1"], ["19.12609508", "-5.847434225", "1"], ["19.22523388", "-5.512747248", "1"], ["19.31851649", "-5.176381035", "1"], ["19.40591449", "-4.838438046", "1"], ["19.48740126", "-4.499021222", "1"], ["19.56295199", "-4.158233952", "1"], ["19.63254364", "-3.816180044", "1"], ["19.69615504", "-3.472963691", "1"], ["19.75376679", "-3.128689439", "1"], ["19.80536136", "-2.783462158", "1"], ["19.85092302", "-2.437387008", "1"], ["19.89043789", "-2.090569406", "1"], ["19.92389395", "-1.743114996", "1"], ["19.951281", "-1.395129617", "1"], ["19.97259069", "-1.046719267", "1"], ["19.98781654", "-0.697990077", "1"], ["19.9969539", "-0.349048272", "1"], ["20", "-1.44E-07", "1"]];
+	module.exports = [["5.1", "3.5", "1.4", "0.2", "Iris-setosa"], ["4.9", "3.0", "1.4", "0.2", "Iris-setosa"], ["4.7", "3.2", "1.3", "0.2", "Iris-setosa"], ["4.6", "3.1", "1.5", "0.2", "Iris-setosa"], ["5.0", "3.6", "1.4", "0.2", "Iris-setosa"], ["5.4", "3.9", "1.7", "0.4", "Iris-setosa"], ["4.6", "3.4", "1.4", "0.3", "Iris-setosa"], ["5.0", "3.4", "1.5", "0.2", "Iris-setosa"], ["4.4", "2.9", "1.4", "0.2", "Iris-setosa"], ["4.9", "3.1", "1.5", "0.1", "Iris-setosa"], ["5.4", "3.7", "1.5", "0.2", "Iris-setosa"], ["4.8", "3.4", "1.6", "0.2", "Iris-setosa"], ["4.8", "3.0", "1.4", "0.1", "Iris-setosa"], ["4.3", "3.0", "1.1", "0.1", "Iris-setosa"], ["5.8", "4.0", "1.2", "0.2", "Iris-setosa"], ["5.7", "4.4", "1.5", "0.4", "Iris-setosa"], ["5.4", "3.9", "1.3", "0.4", "Iris-setosa"], ["5.1", "3.5", "1.4", "0.3", "Iris-setosa"], ["5.7", "3.8", "1.7", "0.3", "Iris-setosa"], ["5.1", "3.8", "1.5", "0.3", "Iris-setosa"], ["5.4", "3.4", "1.7", "0.2", "Iris-setosa"], ["5.1", "3.7", "1.5", "0.4", "Iris-setosa"], ["4.6", "3.6", "1.0", "0.2", "Iris-setosa"], ["5.1", "3.3", "1.7", "0.5", "Iris-setosa"], ["4.8", "3.4", "1.9", "0.2", "Iris-setosa"], ["5.0", "3.0", "1.6", "0.2", "Iris-setosa"], ["5.0", "3.4", "1.6", "0.4", "Iris-setosa"], ["5.2", "3.5", "1.5", "0.2", "Iris-setosa"], ["5.2", "3.4", "1.4", "0.2", "Iris-setosa"], ["4.7", "3.2", "1.6", "0.2", "Iris-setosa"], ["4.8", "3.1", "1.6", "0.2", "Iris-setosa"], ["5.4", "3.4", "1.5", "0.4", "Iris-setosa"], ["5.2", "4.1", "1.5", "0.1", "Iris-setosa"], ["5.5", "4.2", "1.4", "0.2", "Iris-setosa"], ["4.9", "3.1", "1.5", "0.1", "Iris-setosa"], ["5.0", "3.2", "1.2", "0.2", "Iris-setosa"], ["5.5", "3.5", "1.3", "0.2", "Iris-setosa"], ["4.9", "3.1", "1.5", "0.1", "Iris-setosa"], ["4.4", "3.0", "1.3", "0.2", "Iris-setosa"], ["5.1", "3.4", "1.5", "0.2", "Iris-setosa"], ["5.0", "3.5", "1.3", "0.3", "Iris-setosa"], ["4.5", "2.3", "1.3", "0.3", "Iris-setosa"], ["4.4", "3.2", "1.3", "0.2", "Iris-setosa"], ["5.0", "3.5", "1.6", "0.6", "Iris-setosa"], ["5.1", "3.8", "1.9", "0.4", "Iris-setosa"], ["4.8", "3.0", "1.4", "0.3", "Iris-setosa"], ["5.1", "3.8", "1.6", "0.2", "Iris-setosa"], ["4.6", "3.2", "1.4", "0.2", "Iris-setosa"], ["5.3", "3.7", "1.5", "0.2", "Iris-setosa"], ["5.0", "3.3", "1.4", "0.2", "Iris-setosa"], ["7.0", "3.2", "4.7", "1.4", "Iris-versicolor"], ["6.4", "3.2", "4.5", "1.5", "Iris-versicolor"], ["6.9", "3.1", "4.9", "1.5", "Iris-versicolor"], ["5.5", "2.3", "4.0", "1.3", "Iris-versicolor"], ["6.5", "2.8", "4.6", "1.5", "Iris-versicolor"], ["5.7", "2.8", "4.5", "1.3", "Iris-versicolor"], ["6.3", "3.3", "4.7", "1.6", "Iris-versicolor"], ["4.9", "2.4", "3.3", "1.0", "Iris-versicolor"], ["6.6", "2.9", "4.6", "1.3", "Iris-versicolor"], ["5.2", "2.7", "3.9", "1.4", "Iris-versicolor"], ["5.0", "2.0", "3.5", "1.0", "Iris-versicolor"], ["5.9", "3.0", "4.2", "1.5", "Iris-versicolor"], ["6.0", "2.2", "4.0", "1.0", "Iris-versicolor"], ["6.1", "2.9", "4.7", "1.4", "Iris-versicolor"], ["5.6", "2.9", "3.6", "1.3", "Iris-versicolor"], ["6.7", "3.1", "4.4", "1.4", "Iris-versicolor"], ["5.6", "3.0", "4.5", "1.5", "Iris-versicolor"], ["5.8", "2.7", "4.1", "1.0", "Iris-versicolor"], ["6.2", "2.2", "4.5", "1.5", "Iris-versicolor"], ["5.6", "2.5", "3.9", "1.1", "Iris-versicolor"], ["5.9", "3.2", "4.8", "1.8", "Iris-versicolor"], ["6.1", "2.8", "4.0", "1.3", "Iris-versicolor"], ["6.3", "2.5", "4.9", "1.5", "Iris-versicolor"], ["6.1", "2.8", "4.7", "1.2", "Iris-versicolor"], ["6.4", "2.9", "4.3", "1.3", "Iris-versicolor"], ["6.6", "3.0", "4.4", "1.4", "Iris-versicolor"], ["6.8", "2.8", "4.8", "1.4", "Iris-versicolor"], ["6.7", "3.0", "5.0", "1.7", "Iris-versicolor"], ["6.0", "2.9", "4.5", "1.5", "Iris-versicolor"], ["5.7", "2.6", "3.5", "1.0", "Iris-versicolor"], ["5.5", "2.4", "3.8", "1.1", "Iris-versicolor"], ["5.5", "2.4", "3.7", "1.0", "Iris-versicolor"], ["5.8", "2.7", "3.9", "1.2", "Iris-versicolor"], ["6.0", "2.7", "5.1", "1.6", "Iris-versicolor"], ["5.4", "3.0", "4.5", "1.5", "Iris-versicolor"], ["6.0", "3.4", "4.5", "1.6", "Iris-versicolor"], ["6.7", "3.1", "4.7", "1.5", "Iris-versicolor"], ["6.3", "2.3", "4.4", "1.3", "Iris-versicolor"], ["5.6", "3.0", "4.1", "1.3", "Iris-versicolor"], ["5.5", "2.5", "4.0", "1.3", "Iris-versicolor"], ["5.5", "2.6", "4.4", "1.2", "Iris-versicolor"], ["6.1", "3.0", "4.6", "1.4", "Iris-versicolor"], ["5.8", "2.6", "4.0", "1.2", "Iris-versicolor"], ["5.0", "2.3", "3.3", "1.0", "Iris-versicolor"], ["5.6", "2.7", "4.2", "1.3", "Iris-versicolor"], ["5.7", "3.0", "4.2", "1.2", "Iris-versicolor"], ["5.7", "2.9", "4.2", "1.3", "Iris-versicolor"], ["6.2", "2.9", "4.3", "1.3", "Iris-versicolor"], ["5.1", "2.5", "3.0", "1.1", "Iris-versicolor"], ["5.7", "2.8", "4.1", "1.3", "Iris-versicolor"], ["6.3", "3.3", "6.0", "2.5", "Iris-virginica"], ["5.8", "2.7", "5.1", "1.9", "Iris-virginica"], ["7.1", "3.0", "5.9", "2.1", "Iris-virginica"], ["6.3", "2.9", "5.6", "1.8", "Iris-virginica"], ["6.5", "3.0", "5.8", "2.2", "Iris-virginica"], ["7.6", "3.0", "6.6", "2.1", "Iris-virginica"], ["4.9", "2.5", "4.5", "1.7", "Iris-virginica"], ["7.3", "2.9", "6.3", "1.8", "Iris-virginica"], ["6.7", "2.5", "5.8", "1.8", "Iris-virginica"], ["7.2", "3.6", "6.1", "2.5", "Iris-virginica"], ["6.5", "3.2", "5.1", "2.0", "Iris-virginica"], ["6.4", "2.7", "5.3", "1.9", "Iris-virginica"], ["6.8", "3.0", "5.5", "2.1", "Iris-virginica"], ["5.7", "2.5", "5.0", "2.0", "Iris-virginica"], ["5.8", "2.8", "5.1", "2.4", "Iris-virginica"], ["6.4", "3.2", "5.3", "2.3", "Iris-virginica"], ["6.5", "3.0", "5.5", "1.8", "Iris-virginica"], ["7.7", "3.8", "6.7", "2.2", "Iris-virginica"], ["7.7", "2.6", "6.9", "2.3", "Iris-virginica"], ["6.0", "2.2", "5.0", "1.5", "Iris-virginica"], ["6.9", "3.2", "5.7", "2.3", "Iris-virginica"], ["5.6", "2.8", "4.9", "2.0", "Iris-virginica"], ["7.7", "2.8", "6.7", "2.0", "Iris-virginica"], ["6.3", "2.7", "4.9", "1.8", "Iris-virginica"], ["6.7", "3.3", "5.7", "2.1", "Iris-virginica"], ["7.2", "3.2", "6.0", "1.8", "Iris-virginica"], ["6.2", "2.8", "4.8", "1.8", "Iris-virginica"], ["6.1", "3.0", "4.9", "1.8", "Iris-virginica"], ["6.4", "2.8", "5.6", "2.1", "Iris-virginica"], ["7.2", "3.0", "5.8", "1.6", "Iris-virginica"], ["7.4", "2.8", "6.1", "1.9", "Iris-virginica"], ["7.9", "3.8", "6.4", "2.0", "Iris-virginica"], ["6.4", "2.8", "5.6", "2.2", "Iris-virginica"], ["6.3", "2.8", "5.1", "1.5", "Iris-virginica"], ["6.1", "2.6", "5.6", "1.4", "Iris-virginica"], ["7.7", "3.0", "6.1", "2.3", "Iris-virginica"], ["6.3", "3.4", "5.6", "2.4", "Iris-virginica"], ["6.4", "3.1", "5.5", "1.8", "Iris-virginica"], ["6.0", "3.0", "4.8", "1.8", "Iris-virginica"], ["6.9", "3.1", "5.4", "2.1", "Iris-virginica"], ["6.7", "3.1", "5.6", "2.4", "Iris-virginica"], ["6.9", "3.1", "5.1", "2.3", "Iris-virginica"], ["5.8", "2.7", "5.1", "1.9", "Iris-virginica"], ["6.8", "3.2", "5.9", "2.3", "Iris-virginica"], ["6.7", "3.3", "5.7", "2.5", "Iris-virginica"], ["6.7", "3.0", "5.2", "2.3", "Iris-virginica"], ["6.3", "2.5", "5.0", "1.9", "Iris-virginica"], ["6.5", "3.0", "5.2", "2.0", "Iris-virginica"], ["6.2", "3.4", "5.4", "2.3", "Iris-virginica"], ["5.9", "3.0", "5.1", "1.8", "Iris-virginica"]];
 
 /***/ }
 /******/ ]);

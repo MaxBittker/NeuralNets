@@ -5,6 +5,8 @@ module.exports = {
     entry: {
         A1: "./js/A1.js",
         A2: "./js/A2.js",
+        A3: "./js/A3.js",
+
     },
     output: {
         path: path.join(__dirname, "dist"),
@@ -14,7 +16,7 @@ module.exports = {
         loaders: [{
             test: /\.js$/,
             exclude: /(node_modules|bower_components)/,
-            loader: 'babel-loader'
+            loader: 'babel'
         }]
     }
 };
