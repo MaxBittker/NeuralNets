@@ -19,6 +19,7 @@ M value for sigmoid function effects how our network deals with different ranges
 the network has 4 input nodes, 6 hidden nodes (4 choose 2), and 3 output nodes
 
 ###Momentum
+I did not experience my gradient descent getting stuck in local minima so I did not implement momentum 
 
 ###Regularization:
 5% randomization is added to datapoints before training to avoid overfitting
@@ -26,7 +27,6 @@ the network has 4 input nodes, 6 hidden nodes (4 choose 2), and 3 output nodes
 
 ###Splitting the given data into training and test data:
 The entire dataset is used for training and testing.
-
 
 
 ##Output Table
