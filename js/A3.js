@@ -31,14 +31,14 @@ var trainingData = require('./trainingDataA3.js') //trainingdata.js holds an arr
 */
 
 //initweight is called for initial weight values when instantiationg perceptrons
-//It originaly returned 	om values, but this made it harder to compare learning methods  
+//It originaly returned     om values, but this made it harder to compare learning methods  
 function initweight() {
     return ((Math.random() * 2) - 1);
 }
 
 //each perceptron has a learning rate and a weight array, the last value of which is the threshold value
-function perceptron() {
-    this.weights = [initweight(), initweight(), initweight()];
+function perceptron(inputSize) {
+    this.weights = [initweight(), initweight(), initweight(), initweight(), initweight(), initweight(), initweight(), initweight(), initweight()].slice(0, inputSize + 1);
     this.lRate = .1
 }
 
@@ -52,42 +52,65 @@ perceptron.prototype = { //methods attached to perceptrons:
     sigPrime: function(a) {
         return this.sigmoid(a) * (1 - this.sigmoid(a))
     },
-    calc: function(x, y) {
-        var sum = _.reduce(_.map([x, y, 1], (input, key) => input * this.weights[key]), (sum, weightedinput) => sum + weightedinput)
-        return this.sigmoid(sum)
+    calc: function(inputs) {
+        var sum = _.reduce(_.map(inputs.push(1), (input, key) => input * this.weights[key]), (sum, weightedinput) => sum + weightedinput)
+        return sum
     },
-    learn: function(x, y, d, w) {
-        if (typeof w === "undefined") {
-            w = 1;
-        }
-
-        var xi = [x, y, 1];
+    output: function(inputs) {
+        return this.sigmoid(this.calc(inputs))
+    },
+    learn: function(inputs, d, sum) {
+        var xi = inputs.concat(1)
 
         this.weights = _.map(this.weights, (weight, index) => {
-            var gamma = this.calc(x, y) //
-            var d1 = (d - gamma) * gamma * (1 - gamma)
 
-            return (weight + (d1 * w * xi[index] * this.lRate)) //xi * c
+            var d1 = this.sigPrime(this.calc(inputs))
+
+            return (weight + (d1 * sum * xi[index] * this.lRate)) //xi * c
+        })
+    },
+    learnOutput: function(inputs, d) {
+        var xi = inputs.concat(1)
+        this.weights = _.map(this.weights, (weight, index) => {
+            var gamma = this.output(inputs) //
+            var d1 = (d - gamma) * this.sigPrime(this.calc(inputs))
+
+            return (weight + (d1 * xi[index] * this.lRate)) //xi * c
         })
     }
+
 }
 
 function network() {
-    this.hiddenLayer = [new perceptron(), new perceptron]
-    this.outputLayer = [new perceptron(), new perceptron(), new perceptron()]
+    this.hiddenLayer = [new perceptron(2), new perceptron(2), new perceptron(2), new perceptron(2), new perceptron(2), new perceptron(2)]
+    this.outputLayer = [new perceptron(6), new perceptron(6), new perceptron(6)]
 }
 
 network.prototype = { //a function to call update on every node in a layer
     calcHidden: function(input) {
+        // console.log(this.hiddenLayer[0].output(input[0], input[1]))
+        // console.log(input)
+
         return [
-            this.hiddenLayer[0].calc(input[0], input[1]),
-            this.hiddenLayer[1].calc(input[2], input[3])
+            this.hiddenLayer[0].output([input[0], input[1]]),
+            this.hiddenLayer[1].output([input[0], input[2]]),
+            this.hiddenLayer[2].output([input[0], input[3]]),
+            this.hiddenLayer[3].output([input[1], input[2]]),
+            this.hiddenLayer[4].output([input[1], input[3]]),
+            this.hiddenLayer[5].output([input[2], input[3]])
+
+            // this.hiddenLayer[3].output(input[1], input[0]),
+            // this.hiddenLayer[6].output(input[2], input[0]),
+            // this.hiddenLayer[7].output(input[2], input[1]),
+            // this.hiddenLayer[9].output(input[3], input[0]),
+            // this.hiddenLayer[10].output(input[3], input[1]),
+            // this.hiddenLayer[11].output(input[3], input[2])
         ]
     },
     calc: function(input) {
         var hiddenLayerOutput = this.calcHidden(input)
 
-        var output = _.map(this.outputLayer, (node) => node.calc(hiddenLayerOutput[0], hiddenLayerOutput[1]))
+        var output = _.map(this.outputLayer, (node) => node.output(hiddenLayerOutput))
             // console.log(output)
         return output
     },
@@ -95,10 +118,11 @@ network.prototype = { //a function to call update on every node in a layer
     train: function(data) {
         var desired = parseClass(data[4])
             // console.log(desired)
-        var hiddenLayerOutput = this.calc(data)
+
+        var hiddenLayerOutput = this.calcHidden(data)
 
         var output = _.map(this.outputLayer, (node) => {
-            return node.calc(hiddenLayerOutput[0], hiddenLayerOutput[1])
+            return node.output(hiddenLayerOutput)
         })
         var error = _.map(desired, (value, i) => {
             return (value - output[i])
@@ -106,21 +130,31 @@ network.prototype = { //a function to call update on every node in a layer
 
         //modify output weights
         _.each(this.outputLayer, (node, i) => {
-            node.learn(hiddenLayerOutput[0], hiddenLayerOutput[1], desired[i])
+            node.learnOutput(hiddenLayerOutput, desired[i])
         })
 
+        var sums = [0, 0, 0, 0, 0, 0]
+
         //modify hidden weights
+        for (var o = 0; o < 3; o++) {
+            for (var s = 0; s < 6; s++) {
+                console.log(s,this.outputLayer[s])
+
+                sums[s] += (desired[o] - output[o]) * this.outputLayer[s].sigPrime(this.outputLayer[s].calc([hiddenLayerOutput[s], hiddenLayerOutput[s]])) * this.outputLayer[o].weights[s]
+            }
+        }
 
         for (var o = 0; o < 3; o++) {
-            var w0 = this.outputLayer[o].weights[0]
-            var w1 = this.outputLayer[o].weights[1]
 
-            this.hiddenLayer[0].learn(data[0], data[1], desired[o], w0)
-            this.hiddenLayer[1].learn(data[2], data[3], desired[o], w1)
+            this.hiddenLayer[0].learn([data[0], data[1]], desired[o], sum[0]),
+                this.hiddenLayer[1].learn([data[2], data[3]], desired[o], sum[1]),
+                this.hiddenLayer[0].learn([input[0], input[1]], desired[o], sum[2]),
+                this.hiddenLayer[1].learn([input[0], input[2]], desired[o], sum[3]),
+                this.hiddenLayer[2].learn([input[0], input[3]], desired[o], sum[4]),
+                this.hiddenLayer[3].learn([input[1], input[2]], desired[o], sum[5]),
+                this.hiddenLayer[4].learn([input[1], input[3]], desired[o], sum[6]),
+                this.hiddenLayer[5].learn([input[2], input[3]], desired[o], sum[7])
         }
-        // _.each(trainingData, function(data) {
-        // network[0].learn(method, data[0], data[1], dvector[0])
-        // })
 
     },
     //test takes a datapoint, and returns true if the current network classifies it correctly
@@ -128,7 +162,7 @@ network.prototype = { //a function to call update on every node in a layer
         var outvector = parseClass(data[4])
 
         var output = this.calc(data.slice(0, 4))
-        console.log(_.map(output, (val) => val.toFixed(1)), outvector)
+            // console.log(_.map(output, (val) => val.toFixed(1)), outvector)
 
         output = _.map(output, (o) => {
             if (_.max(output) == o)
