@@ -217,39 +217,60 @@
 	    return output;
 	}
 
-	//experiment trains and tests networks iterativly with a given training method. once error is 0, it records some information out to the html
-	function experiment() {
-	    document.write('<h4> i: iteration<br>Lrate: learning rate(decays) <br> error: # of incorrectly classified datapoints <br>MSE: Mean Squared Error <br> ΔMSE: delta MSE </h4>');
+	// function experiment() {
+	document.write('<h4> i: iteration<br>Lrate: learning rate(decays) <br> error: # of incorrectly classified datapoints <br>MSE: Mean Squared Error <br> ΔMSE: delta MSE </h4>');
+	var net = new network();
+	var start = new Date();
+	var lr = 1;
+	var lastMSE = _.reduce(_.map(trainingData, datapoint => net.totalCost(datapoint)), (v, sum) => v + sum) / trainingData.length;
+	var maxi = 1000;
+	epoch(maxi);
+
+	function epoch(i) {
 	    var ErrorProgress = "";
-	    var net = new network();
-	    var start = new Date();
-	    var lr = 1;
-	    var lastMSE = _.reduce(_.map(trainingData, datapoint => net.totalCost(datapoint)), (v, sum) => v + sum) / trainingData.length;
 
-	    for (var i = 0; i < 500; i++) {
-	        lr = lr * .998;
-	        net.setLR(lr);
+	    lr = lr * .998;
+	    net.setLR(lr);
 
-	        _.each(trainingData, datapoint => net.train(datapoint));
+	    _.each(trainingData, datapoint => net.train(datapoint));
 
-	        var numCorrect = _.filter(trainingData, datapoint => net.test(datapoint)).length;
+	    var numCorrect = _.filter(trainingData, datapoint => net.test(datapoint)).length;
 
-	        var totalCost = _.reduce(_.map(trainingData, datapoint => net.totalCost(datapoint)), (v, sum) => v + sum) / trainingData.length;
-	        var deltaMSE = totalCost - lastMSE;
-	        lastMSE = totalCost;
-	        if (i % 10 === 0) ErrorProgress += "i: " + i + "\t\tLrate: " + lr.toFixed(2) + "\t\terror: " + (trainingData.length - numCorrect) + "\t\tMSE: " + totalCost.toFixed(3) + "\t\tΔMSE: " + deltaMSE.toFixed(5) + "<br> ";
+	    var totalCost = _.reduce(_.map(trainingData, datapoint => net.totalCost(datapoint)), (v, sum) => v + sum) / trainingData.length;
+	    var deltaMSE = totalCost - lastMSE;
+	    lastMSE = totalCost;
 
-	        if (numCorrect == trainingData.length) break;
+	    if (i % 10 === 0) {
+	        ErrorProgress += "i: " + (maxi - i) + "\t\tLrate: " + lr.toFixed(2) + "\t\terror: " + (trainingData.length - numCorrect) + "\t\tMSE: " + totalCost.toFixed(3) + "\t\tΔMSE: " + deltaMSE.toFixed(5) + "<br> ";
+	        var fragment = create(ErrorProgress);
+	        document.body.insertBefore(fragment, document.body.childNodes[0]);
 	    }
+
+	    if (i < 2 || numCorrect == trainingData.length) {
+	        complete();
+	        return;
+	    } else setTimeout(() => epoch(i - 1), 0);
+	}
+
+	function create(htmlStr) {
+	    var frag = document.createDocumentFragment(),
+	        temp = document.createElement('div');
+	    temp.innerHTML = htmlStr;
+	    while (temp.firstChild) {
+	        frag.appendChild(temp.firstChild);
+	    }
+	    return frag;
+	}
+
+	function complete() {
 	    var finish = new Date();
 	    var difference = new Date();
 	    difference.setTime(finish.getTime() - start.getTime());
 
-	    document.write(ErrorProgress);
-	    document.write('Took ' + difference.getMilliseconds() + "ms");
+	    console.log(difference.getMilliseconds());
+	    var fragment = create('<h3>Took ' + difference.getMilliseconds() + "ms</h3><br>");
+	    document.body.insertBefore(fragment, document.body.childNodes[0]);
 	}
-
-	experiment();
 
 /***/ },
 /* 1 */
