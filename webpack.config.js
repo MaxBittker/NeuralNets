@@ -6,6 +6,7 @@ module.exports = {
         A1: "./js/A1.js",
         A2: "./js/A2.js",
         A3: "./js/A3.js",
+        A4: "./js/A4.js",
 
     },
     output: {
